@@ -437,40 +437,57 @@ class CipherShareAPITester:
         # Test 4: Create one-time view secret
         one_time_secret_id = self.test_create_one_time_secret()
         
-        # Test 5: Get secret info
+        # Test 5: Create secret with files
+        files_secret_id = self.test_create_secret_with_files()
+        
+        # Test 6: Create secret with files only (no text)
+        files_only_secret_id = self.test_create_secret_files_only()
+        
+        # Test 7: Test file size limit
+        self.test_file_size_limit()
+        
+        # Test 8: Get secret info
         if basic_secret_id:
             self.test_get_secret_info(basic_secret_id)
         
-        # Test 6: Get non-existent secret
+        # Test 9: Get secret info with files
+        if files_secret_id:
+            self.test_get_secret_info_with_files(files_secret_id)
+        
+        # Test 10: Get non-existent secret
         self.test_get_nonexistent_secret()
         
-        # Test 7: View secret without PIN
+        # Test 11: View secret without PIN
         if basic_secret_id:
             self.test_view_secret_without_pin(basic_secret_id)
         
-        # Test 8: View secret with correct PIN
+        # Test 12: View secret with files
+        if files_secret_id:
+            self.test_view_secret_with_files(files_secret_id)
+        
+        # Test 13: View secret with correct PIN
         if pin_secret_id and pin_hash:
             self.test_view_secret_with_pin(pin_secret_id, pin_hash)
         
-        # Test 9: View secret with wrong PIN
+        # Test 14: View secret with wrong PIN
         if pin_secret_id:
             self.test_view_secret_wrong_pin(pin_secret_id)
         
-        # Test 10: View secret missing PIN
+        # Test 15: View secret missing PIN
         if pin_secret_id:
             self.test_view_secret_missing_pin(pin_secret_id)
         
-        # Test 11: One-time view deletion
+        # Test 16: One-time view deletion
         if one_time_secret_id:
             self.test_one_time_view_deletion(one_time_secret_id)
         
-        # Test 12: Invalid data
+        # Test 17: Invalid data
         self.test_invalid_data()
         
-        # Test 13: Cleanup endpoint
+        # Test 18: Cleanup endpoint
         self.test_cleanup_endpoint()
         
-        # Test 14: Delete remaining secrets
+        # Test 19: Delete remaining secrets
         for secret_id in self.created_secrets:
             if secret_id not in [one_time_secret_id]:  # Skip already deleted
                 self.test_delete_secret(secret_id)
