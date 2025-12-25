@@ -1,12 +1,25 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Lock, Unlock, Eye, EyeOff, Copy, Check, AlertTriangle, Clock, Shield, Loader2 } from 'lucide-react';
+import { Lock, Unlock, Eye, EyeOff, Copy, Check, AlertTriangle, Clock, Shield, Loader2, Download, File, FileText, Image, FileArchive } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { toast } from 'sonner';
-import { decryptText, hashPin } from '../lib/crypto';
+import { decryptText, hashPin, decryptFile, downloadFile } from '../lib/crypto';
 import { getSecretInfo, viewSecret } from '../lib/api';
+
+const getFileIcon = (type) => {
+  if (type.startsWith('image/')) return Image;
+  if (type.includes('pdf') || type.includes('document') || type.includes('text')) return FileText;
+  if (type.includes('zip') || type.includes('rar') || type.includes('archive')) return FileArchive;
+  return File;
+};
+
+const formatFileSize = (bytes) => {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
 
 export default function ViewSecret() {
   const { secretId } = useParams();
@@ -17,10 +30,12 @@ export default function ViewSecret() {
   const [pin, setPin] = useState('');
   const [showPin, setShowPin] = useState(false);
   const [decryptedSecret, setDecryptedSecret] = useState('');
+  const [decryptedFiles, setDecryptedFiles] = useState([]);
   const [showSecret, setShowSecret] = useState(true);
   const [copied, setCopied] = useState(false);
   const [isViewing, setIsViewing] = useState(false);
   const [hasViewed, setHasViewed] = useState(false);
+  const [downloadingFile, setDownloadingFile] = useState(null);
 
   useEffect(() => {
     // Get encryption key from URL hash
@@ -77,7 +92,16 @@ export default function ViewSecret() {
         return;
       }
 
-      setDecryptedSecret(decrypted);
+      setDecryptedSecret(decrypted.trim() || '(No text content)');
+      
+      // Store encrypted files data for later decryption
+      if (data.files && data.files.length > 0) {
+        setDecryptedFiles(data.files.map(f => ({
+          ...f,
+          decrypted: false
+        })));
+      }
+      
       setHasViewed(true);
 
       if (data.one_time_view) {
@@ -98,6 +122,27 @@ export default function ViewSecret() {
       }
     } finally {
       setIsViewing(false);
+    }
+  };
+
+  const handleDownloadFile = async (fileData, index) => {
+    setDownloadingFile(index);
+    
+    try {
+      const decryptedBuffer = decryptFile(fileData.encrypted_data, encryptionKey, fileData.iv);
+      
+      if (!decryptedBuffer) {
+        toast.error('Failed to decrypt file');
+        return;
+      }
+      
+      downloadFile(decryptedBuffer, fileData.filename, fileData.file_type);
+      toast.success(`Downloaded ${fileData.filename}`);
+    } catch (error) {
+      console.error('File download error:', error);
+      toast.error('Failed to download file');
+    } finally {
+      setDownloadingFile(null);
     }
   };
 
@@ -158,7 +203,7 @@ export default function ViewSecret() {
   }
 
   // Secret viewed state
-  if (hasViewed && decryptedSecret) {
+  if (hasViewed) {
     return (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -180,6 +225,7 @@ export default function ViewSecret() {
           )}
         </div>
 
+        {/* Secret Text */}
         <div className="glass rounded-xl p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
             <span className="text-slate-400 text-sm">Your Secret</span>
@@ -192,7 +238,7 @@ export default function ViewSecret() {
           </div>
           
           <div 
-            className="encrypted-display min-h-[100px] whitespace-pre-wrap"
+            className="encrypted-display min-h-[80px] whitespace-pre-wrap"
             data-testid="decrypted-secret"
           >
             {showSecret ? decryptedSecret : '••••••••••••••••'}
@@ -220,6 +266,49 @@ export default function ViewSecret() {
             )}
           </Button>
         </div>
+
+        {/* Files Section */}
+        {decryptedFiles.length > 0 && (
+          <div className="glass rounded-xl p-6 mb-6">
+            <h3 className="text-slate-300 font-medium mb-4 flex items-center gap-2">
+              <File className="w-5 h-5 text-emerald-400" />
+              Attached Files ({decryptedFiles.length})
+            </h3>
+            
+            <div className="space-y-3">
+              {decryptedFiles.map((file, index) => {
+                const FileIcon = getFileIcon(file.file_type);
+                return (
+                  <div 
+                    key={index}
+                    className="bg-slate-900/50 rounded-lg px-4 py-3 flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <FileIcon className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-slate-200 text-sm truncate">{file.filename}</p>
+                        <p className="text-slate-500 text-xs">{formatFileSize(file.file_size)}</p>
+                      </div>
+                    </div>
+                    <Button
+                      data-testid={`download-file-${index}`}
+                      onClick={() => handleDownloadFile(file, index)}
+                      disabled={downloadingFile === index}
+                      size="sm"
+                      className="rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                    >
+                      {downloadingFile === index ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Download className="w-4 h-4" />
+                      )}
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         <Link to="/">
           <Button
@@ -256,7 +345,7 @@ export default function ViewSecret() {
 
       <div className="glass rounded-xl p-6 mb-6">
         {/* Secret Info */}
-        <div className="flex items-center justify-center gap-6 mb-6 text-sm">
+        <div className="flex flex-wrap items-center justify-center gap-4 mb-6 text-sm">
           <div className="flex items-center gap-2 text-slate-400">
             <Clock className="w-4 h-4" />
             <span>Expires: {new Date(secretInfo?.expires_at).toLocaleString()}</span>
@@ -267,7 +356,32 @@ export default function ViewSecret() {
               <span>One-time view</span>
             </div>
           )}
+          {secretInfo?.has_files && (
+            <div className="flex items-center gap-2 text-emerald-400">
+              <File className="w-4 h-4" />
+              <span>{secretInfo.files_info?.length || 0} file(s)</span>
+            </div>
+          )}
         </div>
+
+        {/* File Preview Info */}
+        {secretInfo?.files_info && secretInfo.files_info.length > 0 && (
+          <div className="mb-6 bg-slate-900/50 rounded-lg p-4">
+            <p className="text-slate-400 text-sm mb-2">Files included:</p>
+            <div className="space-y-1">
+              {secretInfo.files_info.map((file, idx) => {
+                const FileIcon = getFileIcon(file.file_type);
+                return (
+                  <div key={idx} className="flex items-center gap-2 text-slate-300 text-sm">
+                    <FileIcon className="w-4 h-4 text-slate-500" />
+                    <span className="truncate">{file.filename}</span>
+                    <span className="text-slate-500 text-xs">({formatFileSize(file.file_size)})</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* PIN Input */}
         {secretInfo?.has_pin && (
