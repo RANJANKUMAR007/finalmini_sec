@@ -1,34 +1,158 @@
-.App-logo {
-    height: 40vmin;
-    pointer-events: none;
+/* CipherShare Custom Styles */
+
+/* Tracing beam effect for inputs */
+.input-wrapper {
+  position: relative;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-    .App-logo {
-        animation: App-logo-spin infinite 20s linear;
-    }
+.input-wrapper::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 0.75rem;
+  padding: 1px;
+  background: linear-gradient(90deg, transparent, #10b981, transparent);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
-.App-header {
-    background-color: #0f0f10;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-size: calc(10px + 2vmin);
-    color: white;
+.input-wrapper:focus-within::before {
+  opacity: 1;
 }
 
-.App-link {
-    color: #61dafb;
+/* QR Code container */
+.qr-container {
+  background: white;
+  padding: 16px;
+  border-radius: 12px;
+  display: inline-block;
 }
 
-@keyframes App-logo-spin {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
+/* Secret text area */
+.secret-textarea {
+  background: transparent;
+  border: none;
+  outline: none;
+  resize: none;
+  width: 100%;
+  min-height: 180px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.125rem;
+  line-height: 1.75;
+  color: #f1f5f9;
+}
+
+.secret-textarea::placeholder {
+  color: #475569;
+}
+
+/* Encrypted text display */
+.encrypted-display {
+  font-family: 'JetBrains Mono', monospace;
+  color: #10b981;
+  background: rgba(15, 23, 42, 0.5);
+  padding: 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  word-break: break-all;
+  overflow-wrap: anywhere;
+}
+
+/* Button hover glow */
+.btn-glow:hover {
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+}
+
+/* Link display */
+.share-link {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.875rem;
+  color: #94a3b8;
+  background: rgba(15, 23, 42, 0.7);
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid #1e293b;
+  word-break: break-all;
+}
+
+/* Theme toggle */
+.theme-toggle {
+  position: fixed;
+  top: 1.5rem;
+  right: 1.5rem;
+  z-index: 50;
+}
+
+/* Card shimmer effect */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(16, 185, 129, 0.1) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+/* Expired/Error state */
+.error-state {
+  border-color: rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.05);
+}
+
+/* Success state */
+.success-state {
+  border-color: rgba(16, 185, 129, 0.3);
+  background: rgba(16, 185, 129, 0.05);
+}
+
+/* Copy button animation */
+@keyframes copy-flash {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.copy-flash {
+  animation: copy-flash 0.3s ease-out;
+}
+
+/* PIN input styling */
+.pin-input {
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.5em;
+  text-align: center;
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .secret-textarea {
+    font-size: 1rem;
+    min-height: 150px;
+  }
+  
+  .share-link {
+    font-size: 0.75rem;
+    padding: 0.5rem 0.75rem;
+  }
 }
